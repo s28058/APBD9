@@ -1,3 +1,4 @@
+using APBD9.Exceptions;
 using APBD9.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,5 +28,26 @@ public class TripController : ControllerBase
         {
             return StatusCode(StatusCodes.Status500InternalServerError, "server error");
         }
+    }
+
+    [HttpDelete("{idClient}")]
+    public async Task<IActionResult> DeleteClient(int idClient)
+    {
+        try
+        {
+            await _tripService.DeleteClientAsync(idClient);
+        }
+        catch (NoSuchClientException ex)
+        {
+            return StatusCode(StatusCodes.Status400BadRequest, "no such client");
+
+        }
+        catch (ClientHasTripsException ex)
+        {
+            return StatusCode(StatusCodes.Status400BadRequest, "client has trips");
+
+        }
+
+        return Ok();
     }
 }

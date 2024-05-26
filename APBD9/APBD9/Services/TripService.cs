@@ -1,5 +1,6 @@
 using APBD9.Context;
 using APBD9.DTOs;
+using APBD9.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace APBD9.Services;
@@ -45,6 +46,23 @@ public class TripService : ITripService
 
     public async Task<bool> DeleteClientAsync(int clientId)
     {
+        var client = await _context.Clients
+            .Include(c => c.ClientTrips)
+            .FirstOrDefaultAsync(c => c.IdClient == clientId);
+
+        if (client == null)
+        {
+            throw new NoSuchClientException();
+        }
+
+        if (client.ClientTrips.Any())
+        {
+            throw new ClientHasTripsException();
+        }
+
+        _context.Clients.Remove(client);
+        await _context.SaveChangesAsync();
+        
         return true;
     }
 
