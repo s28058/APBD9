@@ -1,3 +1,4 @@
+using APBD9.DTOs;
 using APBD9.Exceptions;
 using APBD9.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -49,5 +50,33 @@ public class TripController : ControllerBase
         }
 
         return Ok();
+    }
+    
+    [HttpPost("{idTrip}/clients")]
+
+    public async Task<IActionResult> AssignClientToTripAsync(ClientRequestDTO clientRequest)
+    {
+        try
+        {
+            await _tripService.AssignClientToTripAsync(clientRequest);
+            return Ok();
+        }
+        catch (NoSuchTripException ex)
+        {
+            return StatusCode(StatusCodes.Status400BadRequest, "no such trip");
+        }
+        catch (ClientAlreadyExistsException exc)
+        {
+            return StatusCode(StatusCodes.Status400BadRequest, "client already exists");
+        }
+        catch (ClientAlreadyOnTripException ex)
+        {
+            return StatusCode(StatusCodes.Status400BadRequest, "client already on this trip");
+        }
+        catch (TripAlreadyStartedException ex)
+        {
+            return StatusCode(StatusCodes.Status400BadRequest, "trip already started");
+        }
+        
     }
 }

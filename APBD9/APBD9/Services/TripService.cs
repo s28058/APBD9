@@ -1,6 +1,7 @@
 using APBD9.Context;
 using APBD9.DTOs;
 using APBD9.Exceptions;
+using APBD9.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace APBD9.Services;
@@ -68,6 +69,54 @@ public class TripService : ITripService
 
     public async Task<bool> AssignClientToTripAsync(ClientRequestDTO clientRequest)
     {
+        var trip = await _context.Trips.FirstOrDefaultAsync(t => t.IdTrip == clientRequest.IdTrip);
+        if (trip == null)
+        {
+            throw new NoSuchTripException();
+        }
+
+        if (trip.DateFrom <= DateTime.Now)
+        {
+            throw new TripAlreadyStartedException();
+        }
+
+        var existingClient = await _context.Clients.FirstOrDefaultAsync(c => c.Pesel == clientRequest.Pesel);
+        if (existingClient != null)
+        {
+            throw new ClientAlreadyExistsException();
+        }
+
+        var clientWithThisPeselOnTrip = await _context.ClientTrips
+            .Include(ct => ct.IdClientNavigation)
+            .Select(ct => ct.IdClientNavigation)
+            .Where(c => c.Pesel == clientRequest.Pesel)
+            .FirstOrDefaultAsync();
+
+        if (clientWithThisPeselOnTrip != null)
+        {
+            throw new ClientAlreadyOnTripException();
+        }
+
+        await _context.Clients.AddAsync(
+            new Client
+            {
+                FirstName = clientRequest.FirstName,
+                LastName = clientRequest.LastName,
+                Email = clientRequest.Email,
+                Telephone = clientRequest.Telephone,
+                Pesel = clientRequest.Pesel
+
+            });
+
+        await _context.ClientTrips.AddAsync(
+            new ClientTrip
+            {
+                IdTrip = clientRequest.IdTrip,
+                RegisteredAt = DateTime.Now,
+                PaymentDate = clientRequest.PaymentDate,
+            });
+
+        await _context.SaveChangesAsync();
         return true;
     }
 }
